@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>GLOF Watch</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+    <link rel="stylesheet" href="template/style.css" />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
+    <!-- Mapbox GL Geocoder (search) -->
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
+    <link rel="icon" href="data/ndma_logo.png" type="image/icon type">
+</head>
+<!-- _______________________________________________________________________________________________________________________________________________________ -->
+
+<body>
+    <video id="bg_video" src="data/bg_video.mp4" autoplay loop muted></video>
+    <nav class="navbar navbar-light" style="background-color:#002060; margin: 0; padding: 0; width: 100%; height: 70px;">
+        <img class="logo" src="data/ndma_logo.webp" alt="NDMA Logo">
+        <div class="flex-1 text-center heading-container">
+            <div class="bg-glass">
+                N-2
+            </div>
+            <span class="text-white text-5xl font-semibold text-shadow" style="font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important; font-weight: 700;">National GLOF Watch</span>
+        </div>
+        <button class="menu-button" id="menuToggle">
+            <svg xmlns="http://www.w3.org/2000/svg" class="menu-icon" viewBox="0 0 16 16" fill="white">
+              <path
+                d="M1.5 0A1.5 1.5 0 0 0 0 1.5v2A1.5 1.5 0 0 0 1.5 5h13A1.5 1.5 0 0 0 16 3.5v-2A1.5 1.5 0 0 0 14.5 0zm1 2h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1 0-1m9.927.427A.25.25 0 0 1 12.604 2h.792a.25.25 0 0 1 .177.427l-.396.396a.25.25 0 0 1-.354 0zM0 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm1 3v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2zm14-1V8a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v2zM2 8.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0 4a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5" />
+            </svg>
+        </button>
+    </nav>
+    <div id="map">
+        <div id="lake-map-preview" aria-live="polite">
+            <button class="panel-expand-btn" type="button" onclick="openPanelModal('lakeMapPreview')" title="Open map in modal view" aria-label="Open map preview in modal view">
+                <i class="fas fa-up-right-and-down-left-from-center"></i>
+            </button>
+            <img id="lake-map-preview-img" alt="Lake map preview" />
+            <div id="lake-map-preview-caption">Map Preview</div>
+        </div>
+        <div id="station-forecast-widget" aria-live="polite" aria-label="Station forecast graph">
+            <div id="station-forecast-header">
+                <div id="station-forecast-header-text">
+                    <div id="station-forecast-title">Station Forecast</div>
+                    <div id="station-forecast-subtitle">Click a station point to view forecast.</div>
+                </div>
+                <button id="station-forecast-close" type="button" onclick="closeStationForecastWidget()" aria-label="Close station forecast">&times;</button>
+            </div>
+            <div id="station-forecast-chart-wrap">
+                <canvas id="stationForecastChart"></canvas>
+            </div>
+        </div>
+        <div id="station-animation-panel" aria-live="polite" aria-label="Station points forecast animation controls">
+            <div id="station-animation-top-row">
+                <div id="station-animation-title">Station Forecast Animation</div>
+                <button id="station-animation-play-btn" type="button" onclick="toggleStationAnimationPlay()" aria-label="Play station forecast animation">&#9654;</button>
+            </div>
+            <div id="station-animation-meta-row">
+                <div id="station-animation-date">Date: --</div>
+                <div id="station-animation-range">Values: --</div>
+            </div>
+            <input type="range" id="station-animation-slider" min="0" max="0" value="0" step="0.01" oninput="handleStationAnimationSlider(this.value)" aria-label="Station forecast timeline slider">
+            <div id="station-animation-legend">
+                <span>Low</span>
+                <div id="station-animation-legend-bar"></div>
+                <span>High</span>
+            </div>
+        </div>
+        <div id="risk-zonation-legend" aria-live="polite" aria-label="Risk zonation legend">
+            <div id="risk-zonation-legend-title">Risk Zonation</div>
+            <div id="risk-zonation-legend-items"></div>
+        </div>
+        <!-- Glacial Basins Infographics Widget -->
+        <div id="glacial-basins-infographic" class="is-hidden" aria-live="polite" aria-label="Glacial Basins Water Storage Infographic">
+            <div class="gb-info-header">
+                <div class="gb-info-title-wrap">
+                    <span class="gb-info-icon">🏔️</span>
+                    <div class="gb-info-titles">
+                        <span class="gb-info-title">Lakes Inventory 2025 Storage</span>
+                    </div>
+                </div>
+                <div class="gb-info-badge-wrap">
+                    <span class="gb-info-total-badge"><strong id="gb-total-maf">1.872</strong> <small>MAF Total</small></span>
+                    <button type="button" class="gb-info-close-btn" onclick="toggleGlacialBasinsInfographic(false)" title="Close infographic">&times;</button>
+                </div>
+            </div>
+            
+            <!-- Proportional Distribution Segment Bar -->
+            <div class="gb-info-dist-bar-wrap" title="Water Storage Distribution by Altitude">
+                <div class="gb-info-dist-bar">
+                    <div class="gb-dist-seg gb-seg-very-high" style="width: 0%; background-color: #ef4444;" title="Very High: 0.009567 MAF"></div>
+                    <div class="gb-dist-seg gb-seg-high" style="width: 0%; background-color: #f97316;" title="High: 0.967080 MAF"></div>
+                    <div class="gb-dist-seg gb-seg-medium" style="width: 0%; background-color: #eab308;" title="Medium: 0.590877 MAF"></div>
+                    <div class="gb-dist-seg gb-seg-low" style="width: 0%; background-color: #22c55e;" title="Low: 0.304651 MAF"></div>
+                </div>
+            </div>
+
+            <!-- Altitude Storage Rows -->
+            <div class="gb-info-rows">
+                <div class="gb-info-row" data-class="very-high">
+                    <div class="gb-row-header">
+                        <span class="gb-row-label"><span class="gb-dot" style="background-color: #ef4444;"></span> Very High Altitude Lakes <span class="gb-row-count" id="gb-count-very-high">(0)</span></span>
+                        <span class="gb-row-val" id="gb-val-very-high">0.000000 MAF</span>
+                    </div>
+                    <div class="gb-row-progress-bg">
+                        <div class="gb-row-progress-fill" style="width: 0%; background-color: #ef4444;" data-width="0.51%"></div>
+                    </div>
+                </div>
+
+                <div class="gb-info-row" data-class="high">
+                    <div class="gb-row-header">
+                        <span class="gb-row-label"><span class="gb-dot" style="background-color: #f97316;"></span> High Altitude Lakes <span class="gb-row-count" id="gb-count-high">(0)</span></span>
+                        <span class="gb-row-val" id="gb-val-high">0.000000 MAF</span>
+                    </div>
+                    <div class="gb-row-progress-bg">
+                        <div class="gb-row-progress-fill" style="width: 0%; background-color: #f97316;" data-width="51.65%"></div>
+                    </div>
+                </div>
+
+                <div class="gb-info-row" data-class="medium">
+                    <div class="gb-row-header">
+                        <span class="gb-row-label"><span class="gb-dot" style="background-color: #eab308;"></span> Medium Altitude Lakes <span class="gb-row-count" id="gb-count-medium">(0)</span></span>
+                        <span class="gb-row-val" id="gb-val-medium">0.000000 MAF</span>
+                    </div>
+                    <div class="gb-row-progress-bg">
+                        <div class="gb-row-progress-fill" style="width: 0%; background-color: #eab308;" data-width="31.56%"></div>
+                    </div>
+                </div>
+
+                <div class="gb-info-row" data-class="low">
+                    <div class="gb-row-header">
+                        <span class="gb-row-label"><span class="gb-dot" style="background-color: #22c55e;"></span> Low Altitude Lakes <span class="gb-row-count" id="gb-count-low">(0)</span></span>
+                        <span class="gb-row-val" id="gb-val-low">0.000000 MAF</span>
+                    </div>
+                    <div class="gb-row-progress-bg">
+                        <div class="gb-row-progress-fill" style="width: 0%; background-color: #22c55e;" data-width="16.27%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Lakes Inventory 2026 Infographics Widget -->
+        <div id="lakes-inventory-2026-infographic" class="is-hidden" aria-live="polite" aria-label="Lakes Inventory 2026 Water Storage Infographic">
+            <div class="gb-info-header">
+                <div class="gb-info-title-wrap">
+                    <span class="gb-info-icon">🏔️</span>
+                    <div class="gb-info-titles">
+                        <span class="gb-info-title">Lakes Inventory 2026 Storage</span>
+                    </div>
+                </div>
+                <div class="gb-info-badge-wrap">
+                    <span class="gb-info-total-badge"><strong id="li2026-total-maf">0.0000</strong> <small>MAF Total</small></span>
+                    <button type="button" class="gb-info-close-btn" onclick="toggleLakesInventory2026Infographic(false)" title="Close infographic">&times;</button>
+                </div>
+            </div>
+            
+            <!-- Proportional Distribution Segment Bar -->
+            <div class="gb-info-dist-bar-wrap" title="Water Storage Distribution by Altitude">
+                <div class="gb-info-dist-bar">
+                    <div class="gb-dist-seg li2026-seg-very-high" style="width: 0%; background-color: #ef4444;" title="Very High"></div>
+                    <div class="gb-dist-seg li2026-seg-high" style="width: 0%; background-color: #f97316;" title="High"></div>
+                    <div class="gb-dist-seg li2026-seg-medium" style="width: 0%; background-color: #eab308;" title="Medium"></div>
+                    <div class="gb-dist-seg li2026-seg-low" style="width: 0%; background-color: #22c55e;" title="Low"></div>
+                </div>
+            </div>
+
+            <!-- Altitude Storage Rows -->
+            <div class="gb-info-rows">
+                <div class="gb-info-row" data-class="very-high">
+                    <div class="gb-row-header">
+                        <span class="gb-row-label"><span class="gb-dot" style="background-color: #ef4444;"></span> Very High Altitude Lakes <span class="gb-row-count" id="li2026-count-very-high">(0)</span></span>
+                        <span class="gb-row-val" id="li2026-val-very-high">0.0000 MAF</span>
+                    </div>
+                    <div class="gb-row-progress-bg">
+                        <div class="gb-row-progress-fill" style="width: 0%; background-color: #ef4444;" data-width="0%"></div>
+                    </div>
+                </div>
+
+                <div class="gb-info-row" data-class="high">
+                    <div class="gb-row-header">
+                        <span class="gb-row-label"><span class="gb-dot" style="background-color: #f97316;"></span> High Altitude Lakes <span class="gb-row-count" id="li2026-count-high">(0)</span></span>
+                        <span class="gb-row-val" id="li2026-val-high">0.0000 MAF</span>
+                    </div>
+                    <div class="gb-row-progress-bg">
+                        <div class="gb-row-progress-fill" style="width: 0%; background-color: #f97316;" data-width="0%"></div>
+                    </div>
+                </div>
+
+                <div class="gb-info-row" data-class="medium">
+                    <div class="gb-row-header">
+                        <span class="gb-row-label"><span class="gb-dot" style="background-color: #eab308;"></span> Medium Altitude Lakes <span class="gb-row-count" id="li2026-count-medium">(0)</span></span>
+                        <span class="gb-row-val" id="li2026-val-medium">0.0000 MAF</span>
+                    </div>
+                    <div class="gb-row-progress-bg">
+                        <div class="gb-row-progress-fill" style="width: 0%; background-color: #eab308;" data-width="0%"></div>
+                    </div>
+                </div>
+
+                <div class="gb-info-row" data-class="low">
+                    <div class="gb-row-header">
+                        <span class="gb-row-label"><span class="gb-dot" style="background-color: #22c55e;"></span> Low Altitude Lakes <span class="gb-row-count" id="li2026-count-low">(0)</span></span>
+                        <span class="gb-row-val" id="li2026-val-low">0.0000 MAF</span>
+                    </div>
+                    <div class="gb-row-progress-bg">
+                        <div class="gb-row-progress-fill" style="width: 0%; background-color: #22c55e;" data-width="0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="active-layers-legend" aria-live="polite" aria-label="Enabled layers legend">
+            <div id="active-layers-legend-items"></div>
+        </div>
+        <div id="lake-temp-widget" aria-live="polite" aria-label="Lake temperature trend">
+            <div id="lake-temp-header">
+                <div id="lake-temp-header-text">
+                    <div id="lake-temp-title">Lake Temperature Trend</div>
+                </div>
+                <div id="lake-temp-actions">
+                    <button class="panel-expand-btn" type="button" onclick="openPanelModal('lakeTempChart')" title="Open chart in full view" aria-label="Open chart in modal view" style="position: static; margin-right: 4px;">
+                        <i class="fas fa-up-right-and-down-left-from-center"></i>
+                    </button>
+                    <button id="lake-temp-close" type="button" onclick="closeLakeTempWidget()" aria-label="Close temperature widget">&times;</button>
+                </div>
+            </div>
+            <div id="lake-temp-chart-wrap">
+                <canvas id="lakeTempChartCanvas"></canvas>
+            </div>
+        </div>
+        <div id="lake-video-widget" aria-live="polite" aria-label="Lake area change animation video">
+            <div id="lake-video-wrap">
+                <video id="lakeAreaVideoPlayer" autoplay loop muted controls></video>
+                <img id="lakeAreaGifPlayer" style="display: none;" alt="Lake area change animation gif" />
+                <div id="lake-video-placeholder" style="display: none;">
+                    <i class="fas fa-video-slash"></i>
+                    <span>Video coming soon for this lake</span>
+                </div>
+            </div>
+        </div>
+        <div id="lake-area-widget" class="gp" role="region" aria-label="GLOF Lake Area Change Monitor">
+            <h2 style="position:absolute;left:-9999px;">Lake GLOF monitor, area change time series, gauge anomaly.</h2>
+
+            <!-- HEADER -->
+            <div class="gp-header" style="text-align: center; display: flex; justify-content: center; align-items: center;">
+                <div class="gp-header-glow"></div>
+                <div class="gp-title" id="gp-title-text" style="width: 100%; text-align: center;">Badswat Lake, Ghizer</div>
+            </div>
+
+            <!-- TOP PANELS -->
+            <div class="top-panels">
+
+                <!-- LEFT: WATER ANIMATION -->
+                <div class="lake-panel">
+                    <svg style="position:absolute;bottom:0;left:0;width:100%;height:100%;" viewBox="0 0 210 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="210" height="220" fill="#030508"/>
+                        <polygon points="0,220 0,130 25,95 50,115 75,60 100,90 125,40 155,75 180,50 210,70 210,220" fill="#080e1c"/>
+                        <polygon points="0,220 0,150 20,130 50,145 80,110 110,130 140,90 170,115 195,100 210,112 210,220" fill="#06091a"/>
+                        <polygon points="0,220 0,168 30,155 65,162 95,142 130,158 160,140 190,152 210,145 210,220" fill="#04060f"/>
+                        <rect x="60" y="52" width="14" height="6" rx="3" fill="rgba(255,255,255,0.5)"/>
+                        <rect x="115" y="35" width="18" height="7" rx="3" fill="rgba(255,255,255,0.45)"/>
+                        <rect x="168" y="45" width="12" height="5" rx="2.5" fill="rgba(255,255,255,0.4)"/>
+                    </svg>
+                    <canvas class="water-canvas" id="waterCanvas"></canvas>
+                    <div class="lake-top-fade"></div>
+                    <div class="lake-bottom-fade"></div>
+
+                    <!-- CURRENT LAKE AREA BOX — centered -->
+                    <div class="lake-area-box">
+                        <div class="lab-label" id="labLabelYear">Current Lake Area</div>
+                        <div class="lab-val-row" style="display: flex; align-items: baseline; justify-content: center; gap: 4px;">
+                            <span class="lab-num" id="lakeNum">0</span>
+                            <span class="lab-unit">m²</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: GAUGE -->
+                <div class="gauge-panel">
+                    <div class="gauge-panel-glow"></div>
+                    <div class="gauge-title" id="gaugeTitleText">vs 5-Year Avg</div>
+                    <canvas class="gauge-canvas-el" id="gaugeCanvas" height="145"></canvas>
+                </div>
+
+            </div>
+
+            <!-- TIMELINE -->
+            <div class="timeline-section">
+                <div class="ts-header">
+                    <div class="ts-title">Year-by-Year Area</div>
+                </div>
+                <div class="ts-rows" id="tsRows"></div>
+            </div>
+
+        </div>
+
+        
+        <!-- ======== CHARTS ROW — moved inside map container as overlays ======== -->
+        <div id="charts-row" class="hidden-charts">
+
+            <!-- Chart 1: Glacial Lake Area -->
+            <div class="chart-card" id="chart-card-1">
+                <div class="chart-card-header">
+                    <div class="chart-card-title">
+                        <i class="fas fa-water"></i>
+                        <span>Glacial Lake Area (m&sup2;)</span>
+                    </div>
+                    <select id="lake-select" onchange="updateLakeChart()">
+                        <option value="ALL">&#127790; All Lakes</option>
+                        <optgroup label="── Ghizer ──">
+                            <option value="DIST:GHIZER">&#128205; All Ghizer Lakes</option>
+                            <option value="Darkut">Darkut Glacial Lake</option>
+                            <option value="Badswat">Badswat Glacial Lake</option>
+                            <option value="Ishkoman">Ishkoman Glacial Lake</option>
+                            <option value="Tersat Hundur">Tersat Hundur Glacial Lake</option>
+                        </optgroup>
+                        <optgroup label="── Chitral ──">
+                            <option value="DIST:CHITRAL">&#128205; All Chitral Lakes</option>
+                            <option value="Thalo 2">Thalo 2 Glacial Lake</option>
+                            <option value="Pindoru Chaat">Pindoru Chaat Glacial Lake</option>
+                            <option value="Near Chatiboi">Near Chatiboi Glacial Lake</option>
+                            <option value="Chatiboi">Chatiboi Glacial Lake</option>
+                            <option value="Lasht">Lasht Glacial Lake</option>
+                            <option value="Reshun">Reshun Glacial Lake</option>
+                            <option value="Brep">Brep Glacial Lake</option>
+                        </optgroup>
+                        <optgroup label="── Upper Dir ──">
+                            <option value="DIST:UPPER DIR">&#128205; All Upper Dir Lakes</option>
+                            <option value="Thalo 1">Thalo 1 Glacial Lake</option>
+                        </optgroup>
+                        <optgroup label="── Hunza Nagar ──">
+                            <option value="DIST:HUNZA NAGAR">&#128205; All Hunza Nagar Lakes</option>
+                            <option value="Ultar">Ultar Glacial Lake</option>
+                            <option value="Shisper">Shisper Glacial Lake</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="chart-canvas-wrap">
+                    <canvas id="lakeAreaChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Volume District-wise -->
+            <div class="chart-card" id="chart-card-2">
+                <div class="chart-card-header">
+                    <div class="chart-card-title">
+                        <i class="fas fa-mountain"></i>
+                        <span>Glacial Lake Volume (m&sup3;)</span>
+                    </div>
+                    <select id="vol-lake-select" onchange="updateVolumeChart()">
+                        <option value="ALL">&#127790; All Lakes</option>
+                        <optgroup label="── Ghizer ──">
+                            <option value="DIST:GHIZER">&#128205; All Ghizer Lakes</option>
+                            <option value="Darkut">Darkut Glacial Lake</option>
+                            <option value="Badswat">Badswat Glacial Lake</option>
+                            <option value="Ishkoman">Ishkoman Glacial Lake</option>
+                            <option value="Tersat Hundur">Tersat Hundur Glacial Lake</option>
+                        </optgroup>
+                        <optgroup label="── Chitral ──">
+                            <option value="DIST:CHITRAL">&#128205; All Chitral Lakes</option>
+                            <option value="Thalo 2">Thalo 2 Glacial Lake</option>
+                            <option value="Pindoru Chaat">Pindoru Chaat Glacial Lake</option>
+                            <option value="Near Chatiboi">Near Chatiboi Glacial Lake</option>
+                            <option value="Chatiboi">Chatiboi Glacial Lake</option>
+                            <option value="Lasht">Lasht Glacial Lake</option>
+                            <option value="Reshun">Reshun Glacial Lake</option>
+                            <option value="Brep">Brep Glacial Lake</option>
+                        </optgroup>
+                        <optgroup label="── Upper Dir ──">
+                            <option value="DIST:UPPER DIR">&#128205; All Upper Dir Lakes</option>
+                            <option value="Thalo 1">Thalo 1 Glacial Lake</option>
+                        </optgroup>
+                        <optgroup label="── Hunza Nagar ──">
+                            <option value="DIST:HUNZA NAGAR">&#128205; All Hunza Nagar Lakes</option>
+                            <option value="Ultar">Ultar Glacial Lake</option>
+                            <option value="Shisper">Shisper Glacial Lake</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="chart-canvas-wrap">
+                    <canvas id="lakeVolumeChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Floating panels on the right side overlaying the map -->
+        <video id="top_video" src="data/badswat1.mp4" autoplay loop muted controls></video>
+        <div id="top_video_warning_chart">
+            <button class="panel-expand-btn" type="button" onclick="openPanelModal('top_video_warning_chart')" title="Open high temp warning in modal view" aria-label="Open high temp warning in modal view">
+                <i class="fas fa-up-right-and-down-left-from-center"></i>
+            </button>
+            <div id="top_warning_wrap">
+                <iframe src="https://flo.uri.sh/visualisation/28273388/embed#theme=dark" frameborder="0" allowfullscreen scrolling="no"></iframe>
+            </div>
+        </div>
+        <video id="bot_video" src="data/badswat2.mp4" autoplay loop muted controls></video>
+
+        <div id="controlChart">
+            <button class="panel-expand-btn" type="button" onclick="openPanelModal('controlChart')" title="Open chart in modal view" aria-label="Open control chart in modal view">
+                <i class="fas fa-up-right-and-down-left-from-center"></i>
+            </button>
+            <div id="flourish-wrap">
+                <iframe src="https://flo.uri.sh/visualisation/27852382/embed" frameborder="0" allowfullscreen scrolling="no"></iframe>
+            </div>
+        </div>
+
+        <div id="glaciersDataContainer">
+            <button class="panel-expand-btn" type="button" onclick="openPanelModal('glaciersDataContainer')" title="Open image in modal view" aria-label="Open glaciers data in modal view">
+                <i class="fas fa-up-right-and-down-left-from-center"></i>
+            </button>
+            <img src="data/basemap-icons/Glaciers_data.png" alt="Glaciers Data" id="glaciersDataImg">
+        </div>
+
+        <div id="basemapbtn-div">
+            <div class="basemap-row active" data-basemap="hybrid" onclick="changeBasemap('hybrid')">
+                <img id="hybrid-bm" src="data/basemap-icons/hybrid.webp" alt="Hybrid">
+                <span>Hybrid</span>
+            </div>
+            <div class="basemap-row" data-basemap="terrain" onclick="changeBasemap('terrain')">
+                <img id="terrain-bm" src="data/basemap-icons/terrain.webp" alt="Terrain">
+                <span>Terrain</span>
+            </div>
+            <div class="basemap-row" data-basemap="light" onclick="changeBasemap('light')">
+                <img id="light-bm" src="data/basemap-icons/osm.webp" alt="Light">
+                <span>Light</span>
+            </div>
+            <div class="basemap-row" data-basemap="dark" onclick="changeBasemap('dark')">
+                <img id="dark-bm" src="data/basemap-icons/dark.webp" alt="Dark">
+                <span>Dark</span>
+            </div>
+        </div>
+
+        <!-- Hisper Images Telemetry Widget -->
+        <div id="hisper-images-widget" style="display: none;" aria-live="polite" aria-label="Hisper automatic weather station telemetry charts">
+            <div id="hisper-images-header">
+                <span id="hisper-images-title">Hisper-Hopper Telemetry Charts</span>
+                <button id="hisper-images-close" type="button" onclick="closeHisperImagesWidget()" aria-label="Close telemetry images">&times;</button>
+            </div>
+            <div id="hisper-images-body">
+                <!-- Image Cards -->
+                <div class="hisper-img-card" onclick="zoomHisperImage('data/Hisper/Hisper-Hopper_ARG_1 - Air Temperature - 2026-06-08.png', 'Hisper-Hopper_ARG_1 - Air Temperature')">
+                    <img src="data/Hisper/Hisper-Hopper_ARG_1 - Air Temperature - 2026-06-08.png" alt="ARG_1 - Air Temperature">
+                    <div class="hisper-img-label">ARG_1 - Air Temp</div>
+                </div>
+                <div class="hisper-img-card" onclick="zoomHisperImage('data/Hisper/Hisper-Hopper_ARG_3 - Air Temperature - 2026-06-08.png', 'Hisper-Hopper_ARG_3 - Air Temperature')">
+                    <img src="data/Hisper/Hisper-Hopper_ARG_3 - Air Temperature - 2026-06-08.png" alt="ARG_3 - Air Temperature">
+                    <div class="hisper-img-label">ARG_3 - Air Temp</div>
+                </div>
+                <div class="hisper-img-card" onclick="zoomHisperImage('data/Hisper/Hisper-Hopper_ARG_5 - Air Temperature - 2026-06-08.png', 'Hisper-Hopper_ARG_5 - Air Temperature')">
+                    <img src="data/Hisper/Hisper-Hopper_ARG_5 - Air Temperature - 2026-06-08.png" alt="ARG_5 - Air Temperature">
+                    <div class="hisper-img-label">ARG_5 - Air Temp</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="panelModal" class="panel-modal" onclick="handlePanelModalBackdrop(event)">
+            <div class="panel-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="panelModalTitle">
+                <button class="panel-modal-close" type="button" onclick="closePanelModal()" aria-label="Close modal view">&times;</button>
+                <div class="panel-modal-header">
+                    <h3 id="panelModalTitle"></h3>
+                </div>
+                <div id="panelModalBody" class="panel-modal-body"></div>
+            </div>
+        </div>
+
+        <!-- Hakis Glacier Video Popup (centered) -->
+        <div id="hakis-video-popup" class="hakis-video-popup">
+            <button class="close-btn" type="button" onclick="closeHakisVideoPopup()" aria-label="Close Hakis video">&times;</button>
+            <div id="hakis-video-container"></div>
+        </div>
+    </div>
+
+    <!-- LST Floating Control Panel -->
+    <div id="lst-panel">
+        <div class="lst-bar">
+            <span class="lst-title">&#127777; <strong id="lst-month-label">January</strong> 2025</span>
+            <div class="lst-slider-wrap">
+                <input type="range" id="lst-month-slider" class="lst-slider" min="1" max="12" value="1" oninput="changeLSTMonth(this.value)">
+                <div class="lst-month-ticks">
+                    <span>J</span><span>F</span><span>M</span><span>A</span>
+                    <span>M</span><span>J</span><span>J</span><span>A</span>
+                    <span>S</span><span>O</span><span>N</span><span>D</span>
+                </div>
+            </div>
+            <button class="lst-icon-btn" id="lst-play-btn" onclick="toggleLSTPlay()" title="Play/Pause months">&#9654;</button>
+            <button class="lst-icon-btn" id="lst-opacity-btn" onclick="toggleLSTOpacityBar()" title="Opacity">&#9680;</button>
+            <button class="lst-close-btn" onclick="closeLSTPanel()">&#x2715;</button>
+        </div>
+        <div id="lst-opacity-row">
+            <span class="lst-opacity-label">Opacity: <strong id="lst-opacity-value">100%</strong></span>
+            <input type="range" id="lst-opacity-slider" class="lst-slider" min="0" max="100" value="100" oninput="changeLSTOpacity(this.value)">
+        </div>
+        <div class="lst-legend-row">
+            <div class="lst-legend-bar">
+                <span>-40</span><span>-20</span><span>0</span><span>20</span><span>40&deg;C</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======== CHARTS ROW MOVED INSIDE MAP VIEWPORT ======== -->
+
+    <div id="menu">
+    <div class="sidebar-content">
+
+      <!-- ══ 1. BOUNDARIES ══ -->
+      <div class="section" id="sec-boundaries">
+        <button class="section-header" onclick="toggleSection('sec-boundaries')">
+          <span class="section-icon">🗺️</span>
+          <span class="section-label">Boundaries</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="national-boundary-toggle" onclick="toggleLayersVisibility(map1, ['national-boundary-layer'])">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">National Boundary</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="provincial-boundary-toggle" onclick="toggleLayersVisibility(map1, ['provincial-boundary-layer'])">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Provincial Boundary</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="district-boundary-toggle" onclick="toggleLayersVisibility(map1, ['district-boundary-layer', 'district-boundary-label-layer'])">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">District Boundary</span>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- ══ 2. SENSORS INVENTORY ══ -->
+      <div class="section" id="sec-sensors">
+        <button class="section-header" onclick="toggleSection('sec-sensors')">
+          <span class="section-icon">📡</span>
+          <span class="section-label">Sensors Inventory</span>
+          <span class="section-badge">9</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-glof-ii-toggle" data-layer="glof-ii-stations-layer" data-legend-track="true" data-legend-icon="icon-yellow-destination" onchange="toggleQuickGlofII(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">GLOF II, PMD</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-akah-stations-toggle" data-layer="akah-stations-layer" data-legend-track="true" data-legend-icon="icon-green-destination" onchange="toggleQuickAkahStations(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">FOCUS</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-focus-2026-toggle" data-layer="focus-2026-points-layer" data-legend-track="true" data-legend-icon="icon-focus-2026-destination" onchange="toggleQuickFocus2026(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">FOCUS 2026</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-gmrc-wapda-toggle" data-layer="gmrc-wapda-points-layer" data-legend-track="true" data-legend-icon="icon-blue-destination" onchange="toggleQuickGmrcWapda(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">GMRC, WAPDA</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-bri-ff-sensors-toggle" data-layer="bri-ff-sensors-layer" data-legend-track="true" data-legend-icon="icon-red-destination" onchange="toggleQuickBriFfSensors(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">BRI Sensors</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-undp-all-sensors-toggle" data-layer="undp-all-sensors-layer" data-legend-track="true" data-legend-icon="icon-orange-destination" onchange="toggleQuickUndpAllSensors(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">UNDP All Sensors</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-pdma-kp-toggle" data-layer="pdma-kp-points-layer" data-legend-track="true" data-legend-icon="icon-blue-destination" onchange="toggleQuickPdmaKp(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">PDMA, KP</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-evk2cnr-toggle" data-layer="evk2cnr-points-layer" data-legend-track="true" data-legend-icon="icon-green-destination" onchange="toggleQuickEvK2CNR(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">EvK2CNR</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-glof-ii-damaged-toggle" data-layer="glof-ii-damaged-stations-layer" data-legend-track="true" data-legend-icon="icon-warning" onchange="toggleQuickGlofIIDamagedStations(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">GLOF II Damaged Stations</span>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- ══ 3. BASE LAYERS ══ -->
+      <div class="section" id="sec-base">
+        <button class="section-header" onclick="toggleSection('sec-base')">
+          <span class="section-icon">🗂️</span>
+          <span class="section-label">Base Layers</span>
+          <span class="section-badge">6</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="inventory-toggle" data-legend-track="true" data-legend-icon="icon-cyan-dot" onchange="toggleGlacialLakesInventory(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Glacial Lakes Inventory</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-akah-toggle" data-layer="akah-infrastructure-layer" data-legend-track="true" data-legend-icon="icon-circle-red-small" onchange="toggleQuickAkahLayer(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">AKAH Layer</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-populated-places-toggle" data-layer="populated-places-points-layer" data-legend-icon="icon-untracked" onchange="toggleQuickPopulatedPlaces(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Populated Places</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-vulnerable-melting-glaciers-toggle" data-layer="vulnerable-melting-glaciers-layer" onchange="toggleQuickVulnerableMeltingGlaciers(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Melting Glaciers</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-vulnerable-melting-points-toggle" data-layer="vulnerable-melting-points-layer" onchange="toggleQuickVulnerableMeltingPoints(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Vulnerable Melting Points</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-flood-susceptibility-toggle" data-layer="flood-susceptibility-layer" data-legend-icon="icon-untracked" onchange="toggleFloodSusceptibility(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Flood Susceptibility</span>
+          </div>
+
+        </div></div>
+      </div>
+
+      <!-- ══ 3.5 GLACIER CONTRIBUTION ══ -->
+      <div class="section" id="sec-glacier-contribution">
+        <button class="section-header" onclick="toggleSection('sec-glacier-contribution')">
+          <span class="section-icon">🏔️</span>
+          <span class="section-label">Glacier Contribution</span>
+          <span class="section-badge">16</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="glacier-inventory-toggle" data-layer="glacier-inventory-layer" data-legend-track="true" data-legend-icon="icon-glacier-inventory" onchange="toggleGlacierInventory(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Glacier Inventory</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="glacier-reserviors-toggle" data-layer="glacier-reserviors-layer" data-legend-track="true" data-legend-icon="icon-reserviors" onchange="toggleGlacierReserviors(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Reserviors</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="glacier-terminus-toggle" data-layer="glacier-terminus-layer" data-legend-track="true" data-legend-icon="icon-glacier-terminus" onchange="toggleGlacierTerminus(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Glacier Terminus</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="glacial-basins-toggle" data-layer="glacial-basins-layer" data-legend-track="true" data-legend-icon="icon-glacial-basins" onchange="toggleGlacialBasins(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Lakes Inventory 2025</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="lakes-inventory-2026-toggle" data-layer="lakes-inventory-2026-layer" data-legend-track="true" data-legend-icon="icon-glacial-basins" onchange="toggleLakesInventory2026(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Lakes Inventory 2026</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="lulc-toggle" data-layer="lulc-layer" data-legend-track="true" data-legend-icon="icon-lulc" onchange="toggleLulc(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">LULC</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="glacier-major-dams-toggle" data-layer="glacier-major-dams-layer" data-legend-track="true" data-legend-icon="icon-major-dams" onchange="toggleGlacierMajorDams(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Major Dams</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="glacier-minor-dams-toggle" data-layer="glacier-minor-dams-layer" data-legend-track="true" data-legend-icon="icon-minor-dams" onchange="toggleGlacierMinorDams(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Minor Dams</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="ongoing-dams-toggle" data-layer="Ongoing" data-legend-track="true" data-legend-icon="icon-ongoing-dams" onchange="toggleOngoingDams(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Ongoing Dams</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="future-dams-toggle" data-layer="Future" data-legend-track="true" data-legend-icon="icon-future-dams" onchange="toggleFutureDams(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Future Dams</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="glacier-streams-toggle" data-layer="Streams" data-legend-track="true" data-legend-icon="icon-streams" onchange="toggleStreams(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Streams</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="glacier-major-rivers-toggle" data-layer="glacier-major-rivers-layer" data-legend-track="true" data-legend-icon="icon-major-rivers" onchange="toggleGlacierMajorRivers(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Major Rivers</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="glacier-minor-rivers-toggle" data-layer="glacier-minor-rivers-layer" data-legend-track="true" data-legend-icon="icon-minor-rivers" onchange="toggleGlacierMinorRivers(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Minor Rivers</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="glacier-watershed-toggle" data-layer="glacier-watershed-layer" data-legend-track="true" data-legend-icon="icon-watershed" onchange="toggleGlacierWatershed(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Watershed</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="glacier-code-toggle" data-layer="glaciers-grid-fill" data-legend-track="true" data-legend-icon="icon-glacier-code" onchange="toggleGlacierCode(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Glacier Grid 5km</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="glacier-grid-2km-toggle" data-layer="glaciers-grid-2km-fill" data-legend-track="true" data-legend-icon="icon-glacier-code" onchange="toggleGlacierGrid2km(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Glacier Grid 2km</span>
+          </div>
+          <!-- Monsoon basins -->
+          <div class="sub-section" id="monsoon-basins-collapse" style="margin-top: 8px;">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('monsoon-basins-collapse');">
+              <span class="sub-icon">🌧️</span><span class="sub-name">Monsoon basins</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="monsoon-priority-1-toggle" data-layer="monsoon-priority-1-layer" data-legend-track="true" data-legend-icon="icon-monsoon-p1" onchange="toggleMonsoonPriority1(this.checked)">
+                  <span class="toggle-track"></span>
+                </label>
+                <span class="toggle-label">Priority 1</span>
+              </div>
+              <div class="toggle-row" onclick="toggleRow(event, this)">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="monsoon-priority-2-toggle" data-layer="monsoon-priority-2-layer" data-legend-track="true" data-legend-icon="icon-monsoon-p2" onchange="toggleMonsoonPriority2(this.checked)">
+                  <span class="toggle-track"></span>
+                </label>
+                <span class="toggle-label">Priority 2</span>
+              </div>
+            </div></div>
+          </div>
+          <!-- Glacier Basins -->
+          <div class="sub-section" id="glacier-basins-collapse" style="margin-top: 8px;">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('glacier-basins-collapse');">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Basins</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="glacier-basin-batura-toggle" data-layer="glacier-basin-batura-layer" data-legend-track="true" data-legend-icon="icon-glacier-basin-point" onchange="toggleGlacierBasinBatura(this.checked)">
+                  <span class="toggle-track"></span>
+                </label>
+                <span class="toggle-label">Batura</span>
+              </div>
+              <div class="toggle-row" onclick="toggleRow(event, this)">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="glacier-basin-chatiboi-toggle" data-layer="glacier-basin-chatiboi-layer" data-legend-track="true" data-legend-icon="icon-glacier-basin-point" onchange="toggleGlacierBasinChatiboi(this.checked)">
+                  <span class="toggle-track"></span>
+                </label>
+                <span class="toggle-label">Chatiboi</span>
+              </div>
+              <div class="toggle-row" onclick="toggleRow(event, this)">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="glacier-basin-hisper-toggle" data-layer="glacier-basin-hisper-layer" data-legend-track="true" data-legend-icon="icon-glacier-basin-point" onchange="toggleGlacierBasinHisper(this.checked)">
+                  <span class="toggle-track"></span>
+                </label>
+                <span class="toggle-label">Hisper</span>
+              </div>
+              <div class="toggle-row" onclick="toggleRow(event, this)">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="glacier-basin-hakis-toggle" onchange="toggleGlacierBasinHakis(this.checked)">
+                  <span class="toggle-track"></span>
+                </label>
+                <span class="toggle-label">Hakis</span>
+              </div>
+            </div></div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- ══ 4. 2025 SEASON LAYERS ══ -->
+      <div class="year-divider">2025</div>
+      <div class="section" id="sec-2025">
+        <button class="section-header" onclick="toggleSection('sec-2025')">
+          <span class="section-icon">📅</span>
+          <span class="section-label">Season Layers</span>
+          <span class="section-badge">3</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-vulsites-2025-toggle" data-legend-track="true" data-legend-icon="icon-purple-pin" onchange="toggleQuickVulnerableSites2025(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Vulnerable Sites 2025</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-vullakes-2025-toggle" data-legend-track="true" data-legend-icon="icon-red-ring" onchange="toggleQuickVulnerableLakes2025(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Vulnerable Lakes 2025</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-incident-2025-toggle" onchange="toggleQuickIncident2025(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Incident</span>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- ══ 5. 2026 LIVE LAYERS ══ -->
+      <div class="year-divider">2026</div>
+      <div class="section" id="sec-2026">
+        <button class="section-header" onclick="toggleSection('sec-2026')">
+          <span class="section-icon">🔴</span>
+          <span class="section-label">Season Layers</span>
+          <span class="section-badge">7</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-vulsites-2026-toggle" data-legend-track="true" data-legend-icon="icon-red-pin" onchange="toggleQuickVulnerableSites2026(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Vulnerable Sites 2026</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-events-2026-toggle" onchange="toggleQuickEvents2026(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">2026 Events</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-vullakes-2026-toggle" data-legend-track="true" data-legend-icon="icon-red-ring" onchange="toggleQuickVulnerableLakes2026(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Vulnerable Lakes 2026</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-station-points-toggle" onchange="toggleQuickStationPoints(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Station Points</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-high-temp-2026-toggle" onchange="showHighTempWarning(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">High Temp Warning</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-temperature-toggle" onchange="toggleTemperatureLayer(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Temperature</span>
+            <button id="refresh-weather-btn" onclick="event.stopPropagation(); refreshWeatherData(event)" title="Refresh weather from OpenWeatherMap" style="background: none; border: none; color: var(--blue-accent); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; outline: none; transition: transform 0.2s;">
+              <i class="fas fa-sync-alt" id="refresh-weather-icon" style="font-size: 11px;"></i>
+            </button>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-precipitation-toggle" onchange="togglePrecipitationLayer(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Precipitation</span>
+            <button id="refresh-precipitation-btn" onclick="event.stopPropagation(); refreshPrecipitationData(event)" title="Refresh precipitation from OpenWeatherMap" style="background: none; border: none; color: var(--blue-accent); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; outline: none; transition: transform 0.2s;">
+              <i class="fas fa-sync-alt" id="refresh-precipitation-icon" style="font-size: 11px;"></i>
+            </button>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- ══ 5.5 INCIDENTS ══ -->
+      <div class="section" id="sec-incidents">
+        <button class="section-header" onclick="toggleSection('sec-incidents')">
+          <span class="section-icon">⚠️</span>
+          <span class="section-label">Incidents</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-hisper-incident-toggle" onchange="toggleHisperIncident(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Hisper Incident</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-khyber-incident-toggle" onchange="toggleKhyberIncident(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Khyber Incident</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="quick-thore-incident-toggle" onchange="toggleThoreIncident(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Thore Incident</span>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- ══ 6. PMD SENSORS ══ -->
+      <div class="section" id="sec-pmd">
+        <button class="section-header" onclick="toggleSection('sec-pmd')">
+          <span class="section-icon">🌡️</span>
+          <span class="section-label">PMD Sensors</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="pmd-sensors-arg-toggle" data-layer="pmd-sensors-ARG-layer" data-legend-track="true" onchange="toggleLayersVisibility(map1, ['pmd-sensors-ARG-layer'])">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">ARG</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="pmd-sensors-aws-toggle" data-layer="pmd-sensors-AWS-layer" data-legend-track="true" onchange="toggleLayersVisibility(map1, ['pmd-sensors-AWS-layer'])">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">AWS</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="pmd-sensors-wlr-toggle" data-layer="pmd-sensors-WL-R-layer" data-legend-track="true" onchange="toggleLayersVisibility(map1, ['pmd-sensors-WL-R-layer'])">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">WL-R</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="pmd-sensors-wll-toggle" data-layer="pmd-sensors-WL-L-layer" data-legend-track="true" onchange="toggleLayersVisibility(map1, ['pmd-sensors-WL-L-layer'])">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">WL-L</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="pmd-sensors-wp-toggle" data-layer="pmd-sensors-WP-layer" data-legend-track="true" onchange="toggleLayersVisibility(map1, ['pmd-sensors-WP-layer'])">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">WP</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="pmd-sensors-dg-toggle" data-layer="pmd-sensors-DG-layer" data-legend-track="true" onchange="toggleLayersVisibility(map1, ['pmd-sensors-DG-layer'])">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">DG</span>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- ══ 7. ROUTES ══ -->
+      <div class="section" id="sec-routes">
+        <button class="section-header" onclick="toggleSection('sec-routes')">
+          <span class="section-icon">🛣️</span>
+          <span class="section-label">Routes</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" class="route-toggle" id="route-arandu-toggle" onchange="toggleRoute('arandu', this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Arandu Route</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" class="route-toggle" id="route-bashu-valley-toggle" onchange="toggleRoute('bashu valley', this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Bashu Valley Route</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" class="route-toggle" id="route-ghulkin-toggle" onchange="toggleRoute('ghulkin', this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Ghulkin Route</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" class="route-toggle" id="route-hopper-toggle" onchange="toggleRoute('hopper', this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Hopper Route</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" class="route-toggle" id="route-khaplu-toggle" onchange="toggleRoute('Khaplu', this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Khaplu Route</span>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- ══ 8. RISK ZONATION ══ -->
+      <div class="section" id="sec-risk">
+        <button class="section-header" onclick="toggleSection('sec-risk')">
+          <span class="section-icon">⚠️</span>
+          <span class="section-label">Risk Zonation</span>
+          <span class="section-badge" style="background:rgba(255,60,60,0.2);color:#ff8080;border-color:rgba(255,60,60,0.3)">HIGH</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="risk-zonation-ava-toggle" onchange="toggleAkahHazardType('ava', this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Avalanche</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="risk-zonation-dbf-toggle" onchange="toggleAkahHazardType('dbf', this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Debris Flow</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="risk-zonation-bnk-toggle" onchange="toggleAkahHazardType('bnk', this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Bank Erosion</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="risk-zonation-fld-toggle" onchange="toggleAkahHazardType('fld', this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Flood</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="risk-zonation-lds-toggle" onchange="toggleAkahHazardType('lds', this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Landslide</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="risk-zonation-rkf-toggle" onchange="toggleAkahHazardType('rkf', this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Rockfall</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="risk-zonation-ufl-toggle" onchange="toggleAkahHazardType('ufl', this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Urban Flooding</span>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- ══ 9. VULNERABLE LAKES ══ -->
+      <div class="section" id="sec-vlakes">
+        <button class="section-header" onclick="toggleSection('sec-vlakes')">
+          <span class="section-icon">💧</span>
+          <span class="section-label">Vulnerable Lakes</span>
+          <span class="section-badge">14</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+
+          <!-- Badswat -->
+          <div class="sub-section" id="badswat-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('badswat-collapse'); accordionZoom(map1, 'badswat-line', 8, 36.2923495548913, 73.2770059513156);">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Badswat</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="badswat-glacier-toggle" data-popup="true" data-layer="badswat-glacier-layer" onclick="toggleLayersVisibility(map1, ['badswat-glacier-layer', 'badswat-glacier-line'])"><span class="toggle-track"></span></label><span class="toggle-label">Badswat Glacier</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="badswat-lake-toggle" data-popup="true" data-layer="badswat-lake-layer" onclick="toggleLayersVisibility(map1, ['badswat-lake-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Badswat Lake</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="badswat-fault-toggle" data-popup="true" data-layer="badswat-fault-layer" onclick="toggleLayersVisibility(map1, ['badswat-faultline-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Faultline</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="ishkoman-river-toggle" data-popup="true" data-layer="ishkomen-river-layer" onclick="toggleLayersVisibility(map1, ['ishkoman-river-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Ishkomen River</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="karambar-lake-toggle" data-popup="true" data-layer="karambar-lake-layer" onclick="toggleLayersVisibility(map1, ['karambar-lake-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Karambar Lake</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="badswat-risk-toggle" data-popup="true" data-layer="badswat-risk-layer" onclick="toggleLayersVisibility(map1, ['badswat-risk-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+            </div></div>
+          </div>
+
+          <!-- Pindoru Chaat -->
+          <div class="sub-section" id="pindoru-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('pindoru-collapse'); accordionZoom(map1, '', 12, 36.197, 71.799);">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Pindoru Chaat</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="pindoru-lake-toggle" onclick="toggleLayersVisibility(map1, ['pindoru-lake-fill', 'pindoru-lake-outline'])"><span class="toggle-track"></span></label><span class="toggle-label">Pindoru Chaat Lake</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="pindoru-rz-toggle" onclick="toggleLayersVisibility(map1, ['pindoru-rz-high', 'pindoru-rz-medium', 'pindoru-rz-low'])"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+            </div></div>
+          </div>
+
+          <!-- Hinarchi -->
+          <div class="sub-section" id="hiranchi-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('hiranchi-collapse'); accordionZoom(map1, 'hiranchi-line', 8, 36.20703091552801, 74.32939869041434);">
+              <span class="sub-icon">💎</span><span class="sub-name">Hinarchi</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="hiranchi-glacier-toggle" data-popup="true" data-layer="hiranchi-glacier-layer" onclick="toggleLayersVisibility(map1, ['hiranchi-glacier-layer', 'hiranchi-glacier-line'])"><span class="toggle-track"></span></label><span class="toggle-label">Hinarchi Glacier</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="hiranchi-lake-toggle" data-popup="true" data-layer="hiranchi-lake-layer" onclick="toggleLayersVisibility(map1, ['hiranchi-lake-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Hinarchi Lake</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="hiranchi-risk-toggle" data-popup="true" data-layer="hiranchi-risk-layer" onclick="toggleLayersVisibility(map1, ['hiranchi-risk-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+            </div></div>
+          </div>
+
+          <!-- Reshun -->
+          <div class="sub-section" id="reshun-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('reshun-collapse'); accordionZoom(map1, 'reshun-line', 10, 36.079986225225596, 71.86063709100745);">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Reshun</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="chitral-river-toggle" data-popup="true" data-layer="chitral-river-layer" onclick="toggleLayersVisibility(map1, ['chitral-river-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Chitral River</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="reshun-faultline-toggle" data-popup="true" data-layer="reshun-faultline-layer" onclick="toggleLayersVisibility(map1, ['reshun-faultline-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Faultline</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="reshun-glacier-toggle" data-popup="true" data-layer="reshun-glacier-layer" onclick="toggleLayersVisibility(map1, ['reshun-glacier-layer', 'reshun-glacier-line'])"><span class="toggle-track"></span></label><span class="toggle-label">Reshun Glacier</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="reshun-nullah-toggle" data-popup="true" data-layer="reshun-nullah-layer" onclick="toggleLayersVisibility(map1, ['reshun-nullah-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Reshun Nullah</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="reshun-rz-toggle" data-popup="true" data-layer="reshun-rz-layer" onclick="toggleLayersVisibility(map1, ['reshun-risk-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+            </div></div>
+          </div>
+
+          <!-- Terset Hundur -->
+          <div class="sub-section" id="terset-hundur-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('terset-hundur-collapse'); setMapCenter(map1,73.703828554,36.035699054,12);">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Terset Hundur</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="terset-hundur-lake-toggle" data-popup="true" data-layer="terset-hundur-lake-layer" onclick="toggleLayersVisibility(map1, ['terset-hundur-lake-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Terset Hundur Lake</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="terset-hundur-river-toggle" data-popup="true" data-layer="terset-hundur-river-layer" onclick="toggleLayersVisibility(map1, ['terset-hundur-river-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Terset Hundur River</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="terset-hundur-rz-toggle" data-popup="true" data-layer="terset-hundur-risk-high-layer" onclick="toggleLayersVisibility(map1, ['terset-hundur-risk-high-layer', 'terset-hundur-risk-medium-layer', 'terset-hundur-risk-low-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+            </div></div>
+          </div>
+
+          <!-- Ishokoman -->
+          <div class="sub-section" id="ishokoman-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('ishokoman-collapse'); setMapCenter(map1,73.8379,36.5933,12);">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Ishokoman</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="ishokoman-rz-toggle" data-popup="true" data-layer="ishokoman-risk-high-layer" onclick="toggleLayersVisibility(map1, ['ishokoman-risk-high-layer', 'ishokoman-risk-medium-layer', 'ishokoman-risk-low-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+            </div></div>
+          </div>
+
+          <!-- Lusht -->
+          <div class="sub-section" id="lusht-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('lusht-collapse'); setMapCenter(map1,73.0039,36.7767,12);">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Lusht</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="lusht-rz-toggle" data-popup="true" data-layer="lusht-risk-high-layer" onclick="toggleLayersVisibility(map1, ['lusht-risk-high-layer', 'lusht-risk-medium-layer', 'lusht-risk-low-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+            </div></div>
+          </div>
+
+          <!-- Ulter -->
+          <div class="sub-section" id="ulter-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('ulter-collapse'); setMapCenter(map1,74.74202,36.33731,12);">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Ulter</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="ulter-rz-toggle" data-popup="true" data-layer="ulter-risk-high-layer" onchange="toggleUlterRiskZonation(this.checked)"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+            </div></div>
+          </div>
+
+          <!-- Shisper -->
+          <div class="sub-section" id="shisper-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('shisper-collapse'); setMapCenter(map1,74.6057,36.29265,12);">
+              <span class="sub-icon">💧</span><span class="sub-name">Shisper</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="shisper-lake-toggle" data-popup="true" data-layer="shisper-lake-layer" onclick="toggleLayersVisibility(map1, ['shisper-lake-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Shisper Lake</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="shisper-risk-high-toggle" data-popup="true" data-layer="shisper-risk-high-layer" onclick="toggleLayersVisibility(map1, ['shisper-risk-high-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">High Risk</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="shisper-risk-medium-toggle" data-popup="true" data-layer="shisper-risk-medium-layer" onclick="toggleLayersVisibility(map1, ['shisper-risk-medium-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Medium Risk</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="shisper-risk-low-toggle" data-popup="true" data-layer="shisper-risk-low-layer" onclick="toggleLayersVisibility(map1, ['shisper-risk-low-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Low Risk</span></div>
+            </div></div>
+          </div>
+
+          <!-- Brep -->
+          <div class="sub-section" id="brep-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('brep-collapse'); setMapCenter(map1,72.72565,36.48251,12);">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Brep</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="brep-rz-toggle" data-popup="true" data-layer="brep-zonation-layer" onclick="toggleLayersVisibility(map1, ['brep-zonation-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+            </div></div>
+          </div>
+
+          <!-- Thalu -->
+          <div class="sub-section" id="thalu-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('thalu-collapse'); setMapCenter(map1,72.17453,35.76674,12);">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Thalu 1 &amp; 2</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="thalu-rz-toggle" data-popup="true" data-layer="thalu-zonation-layer" onclick="toggleLayersVisibility(map1, ['thalu-zonation-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+            </div></div>
+          </div>
+
+          <!-- Gulmit -->
+          <div class="sub-section" id="gulmit-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('gulmit-collapse'); accordionZoom(map1, 'gulmit-line-layer', 10, 36.309836704386754, 74.73883211874661);">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Gulmit</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="gulmit-buildings-toggle" data-popup="true" data-layer="gulmit-buildings-layer" onclick="toggleLayersVisibility(map1, ['gulmit-buildings-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Buildings</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="gulmit-rivers-toggle" data-popup="true" data-layer="gulmit-Rivers-layer" onclick="toggleLayersVisibility(map1, ['gulmit-rivers-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Rivers</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="gulmit-roads-toggle" data-popup="true" data-layer="gulmit-roads-layer" onclick="toggleLayersVisibility(map1, ['gulmit-roads-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Roads</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="gulmit-schools-toggle" data-popup="true" data-layer="gulmit-schools-layer" onclick="toggleLayersVisibility(map1, ['gulmit-schools-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Schools</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="gulmit-rz-toggle" data-popup="true" data-layer="gulmit-zonation-layer" onclick="toggleLayersVisibility(map1, ['gulmit-zonation-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+            </div></div>
+          </div>
+
+          <!-- Darkot -->
+          <div class="sub-section" id="darkot-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('darkot-collapse'); accordionZoom(map1, '', 9, 36.63656139828247, 73.42122173956244);">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Darkot</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="darkot-buildings-toggle" data-popup="true" data-layer="darkot-buildings-layer" onclick="toggleLayersVisibility(map1, ['darkot-buildings-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Buildings</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="darkot-glaciers-toggle" data-popup="true" data-layer="darkot-glacier-layer" onclick="toggleLayersVisibility(map1, ['darkot-glacier-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Glaciers</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="darkot-rz-toggle" data-popup="true" data-layer="darkot-zonation-layer" onclick="toggleLayersVisibility(map1, ['darkot-zonation-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="darkot-river-toggle" data-popup="true" data-layer="darkot-rivers-layer" onclick="toggleLayersVisibility(map1, ['darkot-rivers-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">River</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="darkot-schools-toggle" data-popup="true" data-layer="darkot-schools-layer" onclick="toggleLayersVisibility(map1, ['darkot-schools-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Schools</span></div>
+            </div></div>
+          </div>
+
+          <!-- Chatiboi -->
+          <div class="sub-section" id="chatiboi-collapse">
+            <button class="sub-header" onclick="event.stopPropagation(); toggleSub('chatiboi-collapse'); accordionZoom(map1, '', 11, 36.813, 73.290);">
+              <span class="sub-icon">🏔️</span><span class="sub-name">Chatiboi</span><span class="sub-chevron">▼</span>
+            </button>
+            <div class="sub-body"><div class="sub-inner">
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="chatiboi-lake-toggle" onclick="toggleLayersVisibility(map1, ['chatiboi-lake-fill', 'chatiboi-lake-outline'])"><span class="toggle-track"></span></label><span class="toggle-label">Chatiboi Lake</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="chatiboi-runoff-toggle" data-popup="true" data-layer="chatiboi-runoff-layer" onclick="toggleLayersVisibility(map1, ['chatiboi-runoff-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Chatiboi Run off</span></div>
+              <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="chatiboi-rz-toggle" data-popup="true" data-layer="chatiboi-risk-high-layer" onclick="toggleLayersVisibility(map1, ['chatiboi-risk-high-layer', 'chatiboi-risk-medium-layer', 'chatiboi-risk-low-layer'])"><span class="toggle-track"></span></label><span class="toggle-label">Risk Zonation</span></div>
+            </div></div>
+          </div>
+
+        </div></div>
+      </div>
+
+      <!-- ══ 10. LAND SURFACE TEMP ══ -->
+      <div class="section" id="sec-lst">
+        <button class="section-header" onclick="toggleSection('sec-lst')">
+          <span class="section-icon">🌡️</span>
+          <span class="section-label">Land Surface Temp</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+          <div class="toggle-row" onclick="toggleRow(event, this)"><label class="toggle-switch"><input type="checkbox" id="lst-layer-toggle" onclick="toggleLST(this.checked)"><span class="toggle-track"></span></label><span class="toggle-label">Show LST Layer</span></div>
+        </div></div>
+      </div>
+
+      <!-- ══ 9.5 GLOFAS LAYERS ══ -->
+      <div class="section" id="sec-glofas">
+        <button class="section-header" onclick="toggleSection('sec-glofas')">
+          <span class="section-icon">🌊</span>
+          <span class="section-label">GloFAS Layers</span>
+          <span class="section-badge">8</span>
+          <span class="section-chevron">▼</span>
+        </button>
+        <div class="section-body"><div class="section-inner">
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="accumulatedPrecip" data-layer="AccRainEGE">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Accumulated Precipitation</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="prob50" data-layer="EGE_probRgt50">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Precip Prob &gt; 50mm</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="prob150" data-layer="EGE_probRgt150">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Precip Prob &gt; 150mm</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="prob300" data-layer="EGE_probRgt300">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Precip Prob &gt; 300mm</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="sum1_30" data-layer="FloodSummary1_30">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Flood Summary (1-30 Days)</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="sum1_3" data-layer="FloodSummary1_3">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Flood Summary (1-3 Days)</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="sum4_10" data-layer="sumAL42EGE">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Flood Summary (4-10 Days)</span>
+          </div>
+          <div class="toggle-row" onclick="toggleRow(event, this)">
+            <label class="toggle-switch">
+              <input type="checkbox" id="sum11_30" data-layer="sumAL43EGE">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Flood Summary (11-30 Days)</span>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- Satellite Imagery -->
+      <button class="action-btn" onclick="window.open('https://ee-waqarsha1994.projects.earthengine.app/view/web-imagery-s2', '_blank')">🛰️&nbsp; Satellite Imagery</button>
+
+      <!-- Play -->
+      <div class="play-wrap">
+        <span id="tour-lake-label" style="font-size: 11px; color: var(--cyan); margin-right: 12px; align-self: center; font-weight: 600;"></span>
+        <button class="play-btn" id="play-all-btn" onclick="playAllTour()" title="Play All Lakes Tour">▶</button>
+      </div>
+
+      <!-- Layer Tour -->
+      <div class="tour-section">
+        <div class="tour-title">
+          🎬 Layer Tour
+          <span style="margin-left:auto;cursor:pointer;font-size:13px;opacity:0.7" id="layer-tour-refresh-btn" onclick="refreshLayerTourOptions()" title="Refresh opened layers">↻</span>
+        </div>
+        <select class="tour-select" id="layer-tour-select" onchange="stopLayerTourIfRunning()">
+          <option value="">Select opened layer</option>
+        </select>
+        <div class="speed-row">
+          <span class="speed-label">Speed</span>
+          <input type="range" class="speed-slider" id="layer-tour-speed-slider" min="1" max="5" value="3" step="1" oninput="updateLayerTourSpeed(this.value)">
+          <span class="speed-label" id="layer-tour-speed-value">Normal</span>
+        </div>
+        <div class="tour-btns">
+          <button class="tour-btn primary" id="layer-tour-btn" type="button" onclick="toggleLayerTour()">Start Tour</button>
+          <button class="tour-btn secondary" id="layer-tour-status" disabled>IDLE</button>
+        </div>
+      </div>
+
+      <!-- Alerts Archive -->
+      <div class="alerts-row toggle-row" onclick="toggleRow(event, this)">
+        <label class="toggle-switch"><input type="checkbox" id="alerts-archive-toggle" onchange="toggleAlertsArchive(this.checked)"><span class="toggle-track"></span></label>
+        <div class="alerts-dot"></div>
+        <span class="toggle-label">Alerts Archive</span>
+      </div>
+
+    </div>
+
+    <script>
+      function toggleSection(id) {
+        document.getElementById(id).classList.toggle('open');
+      }
+      function toggleSub(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const isOpen = el.classList.contains('open');
+
+        if (isOpen) {
+          el.classList.remove('open');
+          el.dispatchEvent(new Event('hide.bs.collapse'));
+        } else {
+          // Close other open sub-sections to match accordion behavior
+          const openSubs = document.querySelectorAll('.sub-section.open');
+          openSubs.forEach(sub => {
+            if (sub.id !== id) {
+              sub.classList.remove('open');
+              sub.dispatchEvent(new Event('hide.bs.collapse'));
+            }
+          });
+
+          el.classList.add('open');
+          el.dispatchEvent(new Event('show.bs.collapse'));
+        }
+      }
+      function toggleRow(e, row) {
+        if (e.target.closest('.toggle-switch') || e.target.closest('button') || e.target.closest('a') || e.target.closest('.toggle-sync')) return;
+        const cb = row.querySelector('input[type="checkbox"]');
+        if (cb) {
+          cb.click();
+        }
+      }
+    </script>
+</div>
+    <!-- _______________________________________________________________________________________________________________________________________________________ -->
+    <script src="template/buttons.js"></script>
+    <script src="template/controls.js"></script>
+    <script src="config.js"></script>
+    <script src="template/map_init.js"></script>
+    <script src="data/geojsons/badswat/badswat_glaciers.js"></script>
+    <script src="data/geojsons/badswat/badswat_lake.js"></script>
+    <script src="data/geojsons/badswat/badswat_faultline.js"></script>
+    <script src="data/geojsons/badswat/ishkoman_river.js"></script>
+    <script src="data/geojsons/badswat/karambar_lake.js"></script>
+    <script src="data/geojsons/badswat/risk_zonation_badswat.js"></script>
+    <script src="data/geojsons/hinarchi/hinarchi_glacier.js"></script>
+    <script src="data/geojsons/hinarchi/hinarchi_lake.js"></script>
+    <script src="data/geojsons/hinarchi/hinarchi_zonation.js"></script>
+    <script src="data/geojsons/reshun/chitral_river.js"></script>
+    <script src="data/geojsons/reshun/faultline_reshun.js"></script>
+    <script src="data/geojsons/reshun/glacier_reshun.js"></script>
+    <script src="data/geojsons/reshun/nullah_reshun.js"></script>
+    <script src="data/geojsons/reshun/risk_zonation_reshun.js"></script>
+    <script src="data/geojsons/brep/brep_zonation.js"></script>
+    <script src="data/geojsons/darkot/darkotRz.js"></script>
+    <script src="data/geojsons/darkot/darkot_schools.js"></script>
+    <script src="data/geojsons/darkot/darkot_buildings.js"></script>
+    <script src="data/geojsons/darkot/darkot_river.js"></script>
+    <script src="data/geojsons/darkot/darkot_glaciers.js"></script>
+    <script src="data/geojsons/gulmit/gulmitBuildings.js"></script>
+    <script src="data/geojsons/gulmit/gulmitRivers.js"></script>
+    <script src="data/geojsons/gulmit/gulmitRoads.js"></script>
+    <script src="data/geojsons/gulmit/gulmitSchools.js"></script>
+    <script src="data/geojsons/gulmit/gulmitRz.js"></script>
+    <script src="data/geojsons/thalu/thaluRz.js"></script>
+    <script src="data/glof_sites.js"></script>
+    <script src="data/vulnerable_lakes.js"></script>
+    <script src="data/incident.js"></script>
+    <script src="data/geojsons/glacier_basins_points.js"></script>
+    <script src="template/map_layers.js"></script>
+    <script src="template/glofas_layers.js"></script>
+    <script src="template/map_layer_legends.js"></script>
+    <script src="template/routes.js"></script>
+    <script src="template/Incidents.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+
+    <!-- ======================================================
+         Glacial Lake Area Chart Initialization
+    ======================================================= -->
+    <script>
+    // -------------------------------------------------------
+    // Data: district, lake name, area in m² (2020-2025)
+    // -------------------------------------------------------
+    const lakeAreaData = [
+        { district: 'GHIZER',      name: 'Darkut',         values: [202000, 215000, 222900, 219100, 221600, 221400, 244200], volume: [3553303,   3882361,   4086482,   3987912,   4052681,   4047488]   },
+        { district: 'UPPER DIR',   name: 'Thalo 1',        values: [233000, 273700, 259200, 227200, 137800, 263100, 257742], volume: [4351898,   5469701,   5062850,   4198877,   2064273,   5171362]   },
+        { district: 'CHITRAL',     name: 'Thalo 2',        values: [42700,  164400, 172100, 182800, 164600, 62200,  165634], volume: [391057.8,  2652247,   2830363,   3083469,   2656830,   667138]    },
+        { district: 'CHITRAL',     name: 'Pindoru Chaat',  values: [219500, 238500, 250700, 274200, 293700, 301200, 301543], volume: [3998254,   4498491,   4828725,   5483895,   6045844,   6266245]   },
+        { district: 'CHITRAL',     name: 'Near Chatiboi',  values: [10500,  9500,   3900,   3500,   4300,   4200,   5639],   volume: [53348.49,  46280.8,   13072.09,  11210.11,  15016.15,  14522.7]   },
+        { district: 'CHITRAL',     name: 'Chatiboi',       values: [211900, 186800, 201600, 202900, 244000, 221000, 234499], volume: [3803114,   3179717,   3543316,   3575805,   4646510,   4037108]   },
+        { district: 'CHITRAL',     name: 'Lasht',          values: [27300,  17500,  40400,  52300,  74200,  77800,  58208],  volume: [207197.4,  110191.3,  361488.8,  521561.8,  857051.4,  916694]    },
+        { district: 'GHIZER',      name: 'Badswat',        values: [750600, 690700, 792500, 825000, 720900, 738800, 836474], volume: [22914664,  20362184,  24752114,  26205832,  21637938,  22404823]  },
+        { district: 'GHIZER',      name: 'Ishkoman',       values: [74400,  72700,  77300,  72300,  74800,  79900,  83694],  volume: [860333.6,  832553.6,  908339.5,  826056.4,  866909.2,  952028.1]  },
+        { district: 'GHIZER',      name: 'Tersat Hundur',  values: [140400, 135500, 134900, 136200, 134900, 134800, 150139], volume: [2119799,   2015520,   2002859,   2030322,   2002859,   2000751]   },
+        { district: 'HUNZA NAGAR', name: 'Ultar',          values: [12000,  11100,  11000,  9600,   8600,   71,     8962],   volume: [64486.78,  57728.73,  56991.61,  46974.1,   40181.04,  44.24052]  },
+        { district: 'CHITRAL',     name: 'Reshun',         values: [2900,   1400,   1900,   3000,   3700,   2700,   2819],   volume: [8582.988,  3051.653,  4708.293,  9006.282,  12130.53,  7754.787]  },
+        { district: 'CHITRAL',     name: 'Brep',           values: [24900,  19900,  16400,  17300,  23100,  25000,  22577],  volume: [181817.8,  132252.7,  100487.4,  108407.4,  163441.5,  182855.6]  },
+        { district: 'HUNZA NAGAR', name: 'Shisper',        values: [27300,  17500,  40400,  52300,  74200,  77800,  63200],  volume: [null,    null,    null,    null,    null,    null]      }
+    ];
+    window.lakeAreaData = lakeAreaData;
+
+    const chartYears = ['2020', '2021', '2022', '2023', '2024', '2025'];
+    const areaChartYears = ['2020', '2021', '2022', '2023', '2024', '2025', '2026'];
+
+    // Palette for individual lakes
+    const lakeColors = [
+        '#60a5fa', '#34d399', '#f59e0b', '#f87171',
+        '#a78bfa', '#fb923c', '#38bdf8', '#4ade80',
+        '#e879f9', '#fbbf24', '#2dd4bf', '#f472b6', '#86efac'
+    ];
+
+    let lakeChart = null;
+
+    // Build Chart.js dataset array based on selected lake
+    const districtColors = { 'GHIZER': '#60a5fa', 'CHITRAL': '#34d399', 'UPPER DIR': '#f59e0b', 'HUNZA NAGAR': '#f87171' };
+
+    function buildLakeDatasets(lakeName) {
+        if (lakeName === 'ALL') {
+            // One line per individual lake — all 13
+            return lakeAreaData.map((lake, i) => {
+                const col = lakeColors[i % lakeColors.length];
+                return {
+                    label: lake.name,
+                    data: lake.values,
+                    borderColor: col,
+                    backgroundColor: col + '18',
+                    pointBackgroundColor: col,
+                    pointBorderColor: '#0d1b2a',
+                    pointBorderWidth: 1.5,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: false,
+                    tension: 0.38
+                };
+            });
+        } else if (lakeName.startsWith('DIST:')) {
+            // All lakes within a single district
+            const dist = lakeName.slice(5);
+            const distLakes = lakeAreaData.filter(l => l.district === dist);
+            return distLakes.map((lake, i) => {
+                const col = lakeColors[i % lakeColors.length];
+                return {
+                    label: lake.name,
+                    data: lake.values,
+                    borderColor: col,
+                    backgroundColor: col + '22',
+                    pointBackgroundColor: col,
+                    pointBorderColor: '#0d1b2a',
+                    pointBorderWidth: 1.5,
+                    borderWidth: 2.5,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    fill: false,
+                    tension: 0.38
+                };
+            });
+        } else {
+            // Single lake — highlighted area chart
+            const lake = lakeAreaData.find(l => l.name === lakeName);
+            if (!lake) return [];
+            const col = districtColors[lake.district] || '#60a5fa';
+            return [{
+                label: lake.name + ' (' + lake.district.charAt(0) + lake.district.slice(1).toLowerCase() + ')',
+                data: lake.values,
+                borderColor: col,
+                backgroundColor: col + '35',
+                pointBackgroundColor: col,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 1.5,
+                borderWidth: 3,
+                pointRadius: 6,
+                pointHoverRadius: 9,
+                fill: true,
+                tension: 0.4
+            }];
+        }
+    }
+
+    function initLakeChart() {
+        const ctx = document.getElementById('lakeAreaChart');
+        if (!ctx) return;
+        lakeChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: areaChartYears,
+                datasets: buildLakeDatasets('ALL')
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 700, easing: 'easeInOutQuart' },
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            color: '#93c5fd',
+                            font: { size: 10, family: 'inherit' },
+                            boxWidth: 10,
+                            boxHeight: 10,
+                            padding: 7,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0d1b2a',
+                        borderColor: '#1d4ed8',
+                        borderWidth: 1,
+                        titleColor: '#93c5fd',
+                        titleFont: { size: 11, weight: '600' },
+                        bodyColor: '#e2e8f0',
+                        bodyFont: { size: 10 },
+                        padding: 8,
+                        callbacks: {
+                            label: ctx => {
+                                const val = ctx.parsed.y;
+                                const formatted = (val !== null && val !== undefined && !isNaN(val))
+                                    ? val.toLocaleString() + ' m²'
+                                    : '-';
+                                return ` ${ctx.dataset.label}: ${formatted}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid:   { color: 'rgba(255,255,255,0.07)', drawTicks: false },
+                        ticks:  { color: '#93c5fd', font: { size: 10 }, padding: 4 },
+                        border: { color: '#1d4ed8', width: 1 }
+                    },
+                    y: {
+                        grid:   { color: 'rgba(255,255,255,0.07)', drawTicks: false },
+                        ticks:  {
+                            color: '#93c5fd',
+                            font: { size: 9 },
+                            padding: 4,
+                            callback: v => {
+                                if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M';
+                                if (v >= 1000)    return (v / 1000).toFixed(0) + 'k';
+                                return v;
+                            }
+                        },
+                        border: { color: '#1d4ed8', width: 1 }
+                    }
+                }
+            }
+        });
+        window.lakeChart = lakeChart;
+    }
+
+    function updateLakeChart() {
+        if (!lakeChart) return;
+        const lakeName = document.getElementById('lake-select').value;
+        lakeChart.data.datasets = buildLakeDatasets(lakeName);
+        lakeChart.update();
+    }
+
+    window.addEventListener('load', initLakeChart);
+
+    // -------------------------------------------------------
+    // Volume Chart (Chart 2) — district-wise stacked bar
+    // -------------------------------------------------------
+    const districtPalette = {
+        'GHIZER':      { base: '#60a5fa', bg: '#60a5fa55' },
+        'CHITRAL':     { base: '#34d399', bg: '#34d39955' },
+        'UPPER DIR':   { base: '#f59e0b', bg: '#f59e0b55' },
+        'HUNZA NAGAR': { base: '#f87171', bg: '#f8717155' }
+    };
+
+    // Per-lake bar colors for single-district view
+    const volLakeColors = [
+        '#60a5fa','#34d399','#f59e0b','#f87171',
+        '#a78bfa','#fb923c','#38bdf8','#4ade80',
+        '#e879f9','#fbbf24','#2dd4bf','#f472b6','#86efac'
+    ];
+
+    let volumeChart = null;
+
+    function fmtVol(v) {
+        if (v === null || v === undefined || isNaN(v)) return '-';
+        if (v >= 1e6)  return (v / 1e6).toFixed(2)  + 'M';
+        if (v >= 1e3)  return (v / 1e3).toFixed(1)  + 'k';
+        return v.toFixed(0);
+    }
+
+    function buildVolumeDatasets(lakeName) {
+        if (lakeName === 'ALL') {
+            // One stacked dataset per district — summed volume
+            return Object.keys(districtPalette).map(d => {
+                const lakes = lakeAreaData.filter(l => l.district === d);
+                const sums  = chartYears.map((_, i) => lakes.reduce((acc, l) => {
+                    const val = l.volume && l.volume[i];
+                    return acc + (val !== null && val !== undefined && !isNaN(val) ? val : 0);
+                }, 0));
+                return {
+                    label: d.charAt(0) + d.slice(1).toLowerCase(),
+                    data: sums,
+                    backgroundColor: districtPalette[d].bg,
+                    borderColor:     districtPalette[d].base,
+                    borderWidth: 1.5,
+                    borderRadius: 3,
+                    borderSkipped: false
+                };
+            });
+        } else if (lakeName.startsWith('DIST:')) {
+            // All individual lakes within a district — grouped bars
+            const dist = lakeName.slice(5);
+            const distLakes = lakeAreaData.filter(l => l.district === dist);
+            return distLakes.map((lake, i) => {
+                const col = volLakeColors[i % volLakeColors.length];
+                return {
+                    label: lake.name,
+                    data: lake.volume,
+                    backgroundColor: col + '55',
+                    borderColor:     col,
+                    borderWidth: 2,
+                    borderRadius: 4,
+                    borderSkipped: false
+                };
+            });
+        } else {
+            // Single lake — one bar series across years
+            const lake = lakeAreaData.find(l => l.name === lakeName);
+            if (!lake) return [];
+            const col = districtPalette[lake.district]?.base || '#60a5fa';
+            return [{
+                label: lake.name + ' (' + lake.district.charAt(0) + lake.district.slice(1).toLowerCase() + ')',
+                data: lake.volume,
+                backgroundColor: col + '55',
+                borderColor:     col,
+                borderWidth: 2,
+                borderRadius: 4,
+                borderSkipped: false
+            }];
+        }
+    }
+
+    function initVolumeChart() {
+        const ctx = document.getElementById('lakeVolumeChart');
+        if (!ctx) return;
+        volumeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartYears,
+                datasets: buildVolumeDatasets('ALL')
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 700, easing: 'easeInOutQuart' },
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            color: '#93c5fd',
+                            font: { size: 10, family: 'inherit' },
+                            boxWidth: 10,
+                            boxHeight: 10,
+                            padding: 7,
+                            usePointStyle: true,
+                            pointStyle: 'rectRounded'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0d1b2a',
+                        borderColor: '#1d4ed8',
+                        borderWidth: 1,
+                        titleColor: '#93c5fd',
+                        titleFont: { size: 11, weight: '600' },
+                        bodyColor: '#e2e8f0',
+                        bodyFont: { size: 10 },
+                        padding: 8,
+                        callbacks: {
+                            label: ctx => {
+                                const val = ctx.parsed.y;
+                                const formatted = (val !== null && val !== undefined && !isNaN(val))
+                                    ? val.toLocaleString(undefined, {maximumFractionDigits: 1}) + ' m³'
+                                    : '-';
+                                return ` ${ctx.dataset.label}: ${formatted}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid:   { color: 'rgba(255,255,255,0.07)', drawTicks: false },
+                        ticks:  { color: '#93c5fd', font: { size: 10 }, padding: 4 },
+                        border: { color: '#1d4ed8', width: 1 }
+                    },
+                    y: {
+                        stacked: true,
+                        grid:   { color: 'rgba(255,255,255,0.07)', drawTicks: false },
+                        ticks:  {
+                            color: '#93c5fd',
+                            font: { size: 9 },
+                            padding: 4,
+                            callback: fmtVol
+                        },
+                        border: { color: '#1d4ed8', width: 1 }
+                    }
+                }
+            }
+        });
+        window.volumeChart = volumeChart;
+    }
+
+    function updateVolumeChart() {
+        if (!volumeChart) return;
+        const lakeName = document.getElementById('vol-lake-select').value;
+        const isAll    = lakeName === 'ALL';
+        // Stack only for All Lakes view; district or single lake use grouped bars
+        volumeChart.options.scales.x.stacked = isAll;
+        volumeChart.options.scales.y.stacked = isAll;
+        volumeChart.data.datasets = buildVolumeDatasets(lakeName);
+        volumeChart.update();
+    }
+
+    window.addEventListener('load', initVolumeChart);
+
+    // ================================================================
+    // PLAY ALL LAKES TOUR
+    // ================================================================
+    const _lakeTour = [
+        { name: 'Badswat',      zoom: 10, lat: 36.2923, lng: 73.2770, chartVal: 'Badswat'       },
+        { name: 'Hinarchi',     zoom: 10, lat: 36.2070, lng: 74.3294, chartVal: 'ALL'           },
+        { name: 'Reshun',       zoom: 12, lat: 36.0800, lng: 71.8606, chartVal: 'Reshun'        },
+        { name: 'Shisper',      zoom: 12, lat: 36.29265, lng: 74.6057, chartVal: 'ALL'           },
+        { name: 'Brep',         zoom: 13, lat: 36.483,  lng: 72.730,  chartVal: 'Brep'          },
+        { name: 'Thalu 1&2',    zoom: 12, lat: 35.770,  lng: 72.163,  chartVal: 'Thalo 1'       },
+        { name: 'Gulmit',       zoom: 12, lat: 36.310,  lng: 74.739,  chartVal: 'ALL'           },
+        { name: 'Darkot',       zoom: 11, lat: 36.637,  lng: 73.421,  chartVal: 'Darkut'        },
+        { name: 'Chatiboi',     zoom: 13, lat: 36.813,  lng: 73.290,  chartVal: 'Chatiboi'      },
+    ];
+    let _tourIndex   = 0;
+    let _tourTimer   = null;
+    let _tourPlaying = false;
+
+    const PLAY_ICON  = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>`;
+    const PAUSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5m5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5"/></svg>`;
+
+    function _tourGoTo(idx) {
+        const stop = _lakeTour[idx];
+        map1.flyTo({ center: [stop.lng, stop.lat], zoom: stop.zoom, speed: 2.5, curve: 1.2, essential: true });
+        const ls = document.getElementById('lake-select');
+        const vs = document.getElementById('vol-lake-select');
+        if (ls) { ls.value = stop.chartVal; updateLakeChart(); }
+        if (vs) { vs.value = stop.chartVal; updateVolumeChart(); }
+        const lbl = document.getElementById('tour-lake-label');
+        if (lbl) lbl.textContent = stop.name;
+    }
+
+    function playAllTour() {
+        const btn = document.getElementById('play-all-btn');
+        if (_tourPlaying) {
+            clearInterval(_tourTimer);
+            _tourTimer   = null;
+            _tourPlaying = false;
+            btn.innerHTML = PLAY_ICON;
+            const lbl = document.getElementById('tour-lake-label');
+            if (lbl) lbl.textContent = '';
+        } else {
+            _tourPlaying  = true;
+            btn.innerHTML = PAUSE_ICON;
+            _tourGoTo(_tourIndex);
+            _tourTimer = setInterval(() => {
+                _tourIndex = (_tourIndex + 1) % _lakeTour.length;
+                _tourGoTo(_tourIndex);
+            }, 4000);
+        }
+    }
+    </script>
+
+</body>
+
+</html>
+<!-- _______________________________________________________________________________________________________________________________________________________ -->
+<!-- _______________________________________________________________________________________________________________________________________________________ -->
+<!-- _______________________________________________________________________________________________________________________________________________________ -->
