@@ -1719,10 +1719,6 @@ h1 {
   right: var(--right-widget-offset, 52px);
   bottom: calc(0.6vw + var(--station-forecast-offset, 0px) + var(--active-legend-height, 0px));
   width: clamp(280px, 22vw, 380px);
-  /* Height is never fixed: the frame below carries the media's own aspect
-     ratio (--lake-video-aspect, set from the loaded media), so the panel is
-     exactly as tall as the picture and can neither crop nor letterbox it. */
-  height: auto;
   border: 3px solid #1d4ed8;
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(13, 27, 42, 0.95) 0%, rgba(8, 17, 31, 0.97) 100%);
@@ -1802,8 +1798,8 @@ h1 {
 #lake-video-wrap {
   position: relative;
   width: 100%;
-  flex: 0 0 auto;
-  aspect-ratio: var(--lake-video-aspect, 16 / 9);
+  flex: 1;
+  min-height: 0;
   background: rgba(3, 8, 18, 0.4);
   display: flex;
   align-items: center;
@@ -4589,19 +4585,12 @@ h1 {
 
 /* Ensure videos and images fill their containers completely with no gaps in normal view */
 #glaciersDataImg,
+#lakeAreaVideoPlayer,
+#lakeAreaGifPlayer,
 #lake-map-preview-img {
   width: 100% !important;
   height: 100% !important;
   object-fit: fill !important; /* Stretch to container width and height */
-}
-
-/* Lake videos keep their whole frame visible: ContainerManager sizes their box
-   to the media's aspect ratio, so "contain" and the box edge coincide. */
-#lakeAreaVideoPlayer,
-#lakeAreaGifPlayer {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain !important;
 }
 
 
