@@ -4599,7 +4599,11 @@ function syncLakeVideoLayout() {
     }
 
     if (widget && width > 0 && height > 0) {
-        widget.dataset.mediaAspect = (width / height).toFixed(4);
+        const ratio = (width / height).toFixed(4);
+        widget.dataset.mediaAspect = ratio;
+        // Drives the frame's aspect-ratio, so the panel sizes itself even
+        // before the next layout pass runs.
+        widget.style.setProperty('--lake-video-aspect', ratio);
     }
 
     updateActiveLegendOffset();
@@ -5948,9 +5952,17 @@ let containerObserver = null;
             el.style.left       = 'auto';
             if (!isLegend) {
                 el.style.width      = COL_W  + 'px';
-                el.style.height     = (span * SLOT_H + (span - 1) * SLOT_GAP) + 'px';
-                el.style.maxHeight  = (span * SLOT_H + (span - 1) * SLOT_GAP) + 'px';
-                el.style.overflowY  = 'auto';
+                if (el.id === 'lake-video-widget') {
+                    // Height comes from the media's aspect ratio (see the
+                    // #lake-video-wrap rule and sizeLakeVideoWidget).
+                    el.style.height    = '';
+                    el.style.maxHeight = '';
+                    el.style.overflowY = 'hidden';
+                } else {
+                    el.style.height     = (span * SLOT_H + (span - 1) * SLOT_GAP) + 'px';
+                    el.style.maxHeight  = (span * SLOT_H + (span - 1) * SLOT_GAP) + 'px';
+                    el.style.overflowY  = 'auto';
+                }
             } else {
                 el.style.width      = '';
                 el.style.maxHeight  = '';
@@ -5983,14 +5995,14 @@ let containerObserver = null;
             const room = ceiling - bottom;
             if (room < 140) return;   // too tight to be worth resizing
 
+            // Width is the only thing we force: the frame derives its height
+            // from the ratio, so pick the widest box that still fits the room.
             const ratio  = getLakeVideoAspect();
             const mediaW = Math.max(120, Math.min(COL_W - BORDER * 2, Math.round((room - BORDER * 2) * ratio)));
-            const mediaH = Math.round(mediaW / ratio);
-            const boxH   = mediaH + BORDER * 2;
 
             el.style.width     = (mediaW + BORDER * 2) + 'px';
-            el.style.height    = boxH + 'px';
-            el.style.maxHeight = boxH + 'px';
+            el.style.height    = '';
+            el.style.maxHeight = '';
         }
 
         // Step 1 — pin active legend to slot 0 of col 1 (bottom-right)
@@ -6001,9 +6013,14 @@ let containerObserver = null;
             occupySlots(slotMap, 1, 0, 1);   // reserve slot 0 in col 1
         }
 
-        // Step 1.5 — Place lake-area-widget at slots 2 & 3 of Column 1 if visible (top of 1st column)
+        // Step 1.5 — Place lake-area-widget at slots 2 & 3 of Column 1 if visible (top of 1st column).
+        // Only when that block actually fits above the map's top edge; otherwise it is
+        // left to the normal placement pass, which can put it in another column instead
+        // of letting it run off the top of the screen.
         const isLakeAreaActive = isVisible('lake-area-widget');
-        if (isLakeAreaActive) {
+        const areaSlotTop = slotBottom(2, 1) + 2 * SLOT_H + SLOT_GAP;
+        const isLakeAreaPinned = isLakeAreaActive && areaSlotTop <= viewportHeight - 12;
+        if (isLakeAreaPinned) {
             const el = document.getElementById('lake-area-widget');
             applyPos(el, slotBottom(2, 1), colRight(1), 2, false);
             el.style.zIndex = 11;
@@ -6013,7 +6030,7 @@ let containerObserver = null;
         }
 
         // Step 2 — place all other visible containers (excluding lake-area-widget if already placed)
-        const others = REGISTRY.filter(r => !r.pinned && isVisible(r.id) && r.id !== 'lake-area-widget');
+        const others = REGISTRY.filter(r => !r.pinned && isVisible(r.id) && !(r.id === 'lake-area-widget' && isLakeAreaPinned));
 
         // Sort: right-column items first so col 1 fills before overflow
         const colOrder = [1, 0, 2];
