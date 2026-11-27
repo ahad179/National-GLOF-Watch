@@ -4574,11 +4574,34 @@ function getLakeVideoPath(accordionId) {
     return `data/Lake Area Change Videos/${encodeURIComponent(filename)}`;
 }
 
-// The widget has no fixed height: it takes the media's natural ratio, so its
-// measured height (and therefore the offsets of everything stacked on it) is
-// only final once the media's dimensions are known. Re-run the stack layout at
-// that point, otherwise the widget and its neighbours overlap or leave gaps.
+// The widget has no height of its own: ContainerManager sizes its box from the
+// media's aspect ratio (see sizeLakeVideoWidget), so the ratio has to be known
+// and the layout re-run once the media's real dimensions arrive.
+function getLakeVideoAspect() {
+    const widget = document.getElementById('lake-video-widget');
+    const ratio = widget ? parseFloat(widget.dataset.mediaAspect) : NaN;
+    return (isFinite(ratio) && ratio > 0) ? ratio : 16 / 9;
+}
+
 function syncLakeVideoLayout() {
+    const widget = document.getElementById('lake-video-widget');
+    const player = document.getElementById('lakeAreaVideoPlayer');
+    const gifPlayer = document.getElementById('lakeAreaGifPlayer');
+
+    let width = 0;
+    let height = 0;
+    if (player && player.style.display !== 'none' && player.videoWidth > 0 && player.videoHeight > 0) {
+        width = player.videoWidth;
+        height = player.videoHeight;
+    } else if (gifPlayer && gifPlayer.style.display !== 'none' && gifPlayer.naturalWidth > 0 && gifPlayer.naturalHeight > 0) {
+        width = gifPlayer.naturalWidth;
+        height = gifPlayer.naturalHeight;
+    }
+
+    if (widget && width > 0 && height > 0) {
+        widget.dataset.mediaAspect = (width / height).toFixed(4);
+    }
+
     updateActiveLegendOffset();
 }
 
@@ -4625,6 +4648,7 @@ function showLakeVideoWidget(accordionId) {
         if (placeholderText) {
             placeholderText.textContent = `Video coming soon for ${lakeName}`;
         }
+        delete widget.dataset.mediaAspect;
         updateActiveLegendOffset();
         return;
     }
@@ -5935,6 +5959,40 @@ let containerObserver = null;
             el.style.transition = `bottom ${EASE}, right ${EASE}`;
         }
 
+        // The video widget is the only container whose content has a fixed
+        // aspect ratio, so a rigid slot either crops the frame or leaves empty
+        // bands. Size its box to the media's ratio instead, trimmed to the free
+        // room above the slot it was placed in (never covering its neighbour).
+        function sizeLakeVideoWidget(def) {
+            const el = def && document.getElementById(def.id);
+            if (!el || def.id !== 'lake-video-widget') return;
+            if (def.actualCol == null || def.actualSlot == null) return;
+
+            const BORDER = 3;   // matches #lake-video-widget's border-width
+            const bottom = slotBottom(def.actualSlot, def.actualCol);
+
+            // Ceiling: the first slot occupied above it, else the map's top edge.
+            let ceiling = viewportHeight - 8;
+            for (let s = def.actualSlot + 1; s < 5; s++) {
+                if (slotMap[def.actualCol][s]) {
+                    ceiling = slotBottom(s, def.actualCol) - SLOT_GAP;
+                    break;
+                }
+            }
+
+            const room = ceiling - bottom;
+            if (room < 140) return;   // too tight to be worth resizing
+
+            const ratio  = getLakeVideoAspect();
+            const mediaW = Math.max(120, Math.min(COL_W - BORDER * 2, Math.round((room - BORDER * 2) * ratio)));
+            const mediaH = Math.round(mediaW / ratio);
+            const boxH   = mediaH + BORDER * 2;
+
+            el.style.width     = (mediaW + BORDER * 2) + 'px';
+            el.style.height    = boxH + 'px';
+            el.style.maxHeight = boxH + 'px';
+        }
+
         // Step 1 — pin active legend to slot 0 of col 1 (bottom-right)
         if (activeLegendId) {
             const el = document.getElementById(activeLegendId);
@@ -5998,6 +6056,7 @@ let containerObserver = null;
                     el.style.zIndex = def.z;
                     occupySlots(slotMap, colIdx, slot, def.span);
                     def.actualCol = colIdx;
+                    def.actualSlot = slot;
                     placed = true;
                     break;
                 }
@@ -6009,9 +6068,13 @@ let containerObserver = null;
                 applyPos(el, overflowBottom, colRight(2), def.span, false);
                 el.style.zIndex = def.z;
                 def.actualCol = 2;
+                def.actualSlot = 4;
                 console.warn('[ContainerManager] Grid full, overflowing:', def.id);
             }
         });
+
+        // Step 2.5 — give the video widget its media-driven box (see above).
+        REGISTRY.forEach(sizeLakeVideoWidget);
 
         // Set the active legend height for stacking other widgets if needed.
         if (mapEl) {
