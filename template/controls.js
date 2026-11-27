@@ -4574,6 +4574,24 @@ function getLakeVideoPath(accordionId) {
     return `data/Lake Area Change Videos/${encodeURIComponent(filename)}`;
 }
 
+// The widget has no fixed height: it takes the media's natural ratio, so its
+// measured height (and therefore the offsets of everything stacked on it) is
+// only final once the media's dimensions are known. Re-run the stack layout at
+// that point, otherwise the widget and its neighbours overlap or leave gaps.
+function syncLakeVideoLayout() {
+    updateActiveLegendOffset();
+}
+
+function bindLakeVideoLayoutSync() {
+    const player = document.getElementById('lakeAreaVideoPlayer');
+    const gifPlayer = document.getElementById('lakeAreaGifPlayer');
+    if (!player || !gifPlayer || player.dataset.layoutSync === 'true') return;
+    player.dataset.layoutSync = 'true';
+    player.addEventListener('loadedmetadata', syncLakeVideoLayout);
+    player.addEventListener('loadeddata', syncLakeVideoLayout);
+    gifPlayer.addEventListener('load', syncLakeVideoLayout);
+}
+
 function showLakeVideoWidget(accordionId) {
     const config = LAKE_TEMP_GIDS[accordionId];
     if (!config) {
@@ -4588,6 +4606,8 @@ function showLakeVideoWidget(accordionId) {
     const placeholder = document.getElementById('lake-video-placeholder');
 
     if (!widget || !player || !gifPlayer || !placeholder) return;
+
+    bindLakeVideoLayoutSync();
     
     // Slide widget in smoothly
     widget.classList.add('is-visible');

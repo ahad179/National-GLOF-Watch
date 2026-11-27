@@ -1715,10 +1715,16 @@ h1 {
    LAKE AREA CHANGE VIDEO WIDGET (BOTTOM-RIGHT STACK)
    ============================================================ */
 #lake-video-widget {
+  /* Single source of truth for the widget's anchor, so the height cap below
+     always matches its resting position (see .video-shifted-left override). */
+  --lake-video-bottom: calc(0.6vw + var(--station-forecast-offset, 0px) + var(--active-legend-height, 0px));
   position: absolute;
   right: var(--right-widget-offset, 52px);
-  bottom: calc(0.6vw + var(--station-forecast-offset, 0px) + var(--active-legend-height, 0px));
+  bottom: var(--lake-video-bottom);
   width: clamp(280px, 22vw, 380px);
+  /* Never grow taller than the room above its anchor: the video keeps its own
+     size when it fits, and is clipped instead of overflowing off the top. */
+  max-height: calc(100% - var(--lake-video-bottom) - 0.6vw);
   border: 3px solid #1d4ed8;
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(13, 27, 42, 0.95) 0%, rgba(8, 17, 31, 0.97) 100%);
@@ -4373,8 +4379,9 @@ h1 {
    RESPONSIVE LAYOUT SHIFT (WHEN HEIGHT OCCUPIED IN STACK)
    ============================================================ */
 #map.video-shifted-left #lake-video-widget {
+  --lake-video-bottom: calc(0.6vw + var(--station-forecast-offset, 0px));
   right: calc(var(--right-widget-offset, 52px) + var(--active-legend-width, 0px));
-  bottom: calc(0.6vw + var(--station-forecast-offset, 0px));
+  bottom: var(--lake-video-bottom);
 }
 
 #map.video-shifted-left #lake-map-preview {
@@ -4585,12 +4592,19 @@ h1 {
 
 /* Ensure videos and images fill their containers completely with no gaps in normal view */
 #glaciersDataImg,
-#lakeAreaVideoPlayer,
-#lakeAreaGifPlayer,
 #lake-map-preview-img {
   width: 100% !important;
   height: 100% !important;
   object-fit: fill !important; /* Stretch to container width and height */
+}
+
+/* Lake videos fill their box the same way, but crop instead of stretching once
+   the widget's max-height trims the box on short screens. */
+#lakeAreaVideoPlayer,
+#lakeAreaGifPlayer {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
 }
 
 
