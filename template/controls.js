@@ -1130,6 +1130,10 @@ function getLegendIconClass(layer) {
         return 'icon-red-ring';
     }
 
+    if (inputId === 'quick-events-2026-toggle') {
+        return 'icon-orange-pin';
+    }
+
     if (inputId === 'quick-focus-2026-toggle') {
         return 'icon-focus-2026-destination';
     }
